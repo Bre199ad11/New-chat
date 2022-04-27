@@ -31,7 +31,7 @@ namespace Chat
         {
             bool f = false;
             string login = textBox1.Text;
-            foreach (string str in System.IO.File.ReadAllLines(@"C:\Users\Георгий Валерьевич\source\repos\Хеширование\Хеширование\login.txt"))
+            foreach (string str in System.IO.File.ReadAllLines(@"login.txt"))
             {
                 if (login == str)
                 {

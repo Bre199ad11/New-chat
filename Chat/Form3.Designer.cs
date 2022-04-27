@@ -40,7 +40,7 @@ namespace Chat
             this.button1.Name = "button1";
             this.button1.Size = new System.Drawing.Size(138, 62);
             this.button1.TabIndex = 0;
-            this.button1.Text = "button1";
+            this.button1.Text = "Войти";
             this.button1.UseVisualStyleBackColor = true;
             this.button1.Click += new System.EventHandler(this.button1_Click);
             // 
@@ -67,7 +67,7 @@ namespace Chat
             this.Controls.Add(this.textBox1);
             this.Controls.Add(this.button1);
             this.Name = "Form3";
-            this.Text = "Form3";
+            this.Text = "Пользователь2";
             this.ResumeLayout(false);
             this.PerformLayout();
 
