@@ -7,16 +7,32 @@ using System.Security.Cryptography;
 
 namespace Chat
 {
-    
-    public static class Data_From_User2ToUser1
+    public class RSAHash
     {
-        public delegate void MyEvent(byte[] data, RSAParameters key);
-        public static MyEvent EventHandler;
+        public static class Data_From_User2ToUser1
+        {
+            public delegate void MyEvent(byte[][] data, RSAParameters key);
+            public static MyEvent EventHandler;
+        }
+
+        public static class Data_From_User1ToUser2
+        {
+            public delegate void MyEvent(byte[][] data, RSAParameters key);
+            public static MyEvent EventHandler;
+        }
     }
-    
-    public static class Data_From_User1ToUser2
+    public class AESHash
     {
-        public delegate void MyEvent(byte[] data, RSAParameters key);
-        public static MyEvent EventHandler;
+        public static class Data_From_User2ToUser1
+        {
+            public delegate void MyEvent(byte[] data, byte[] key, byte[] vector);
+            public static MyEvent EventHandler;
+        }
+
+        public static class Data_From_User1ToUser2
+        {
+            public delegate void MyEvent(byte[] data, byte[] key, byte[] vector);
+            public static MyEvent EventHandler;
+        }
     }
 }

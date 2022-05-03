@@ -10,6 +10,7 @@ using System.Windows.Forms;
 using System.Security.Cryptography;
 using System.Net;
 using System.Net.Sockets;
+using System.IO;
 
 namespace Chat
 {
@@ -22,15 +23,61 @@ namespace Chat
             InitializeComponent();
             this.StartPosition = FormStartPosition.Manual;
             this.Location = new Point(100, 100);
-            Data_From_User2ToUser1.EventHandler = new Data_From_User2ToUser1.MyEvent(TxtChange);
+            RSAHash.Data_From_User2ToUser1.EventHandler = new RSAHash.Data_From_User2ToUser1.MyEvent(RSATxtChange);
+            AESHash.Data_From_User2ToUser1.EventHandler = new AESHash.Data_From_User2ToUser1.MyEvent(AESTxtChange);
         }
 
 
-        private void TxtChange(byte[] data, RSAParameters key)
+        private void RSATxtChange(byte[][] data, RSAParameters key)
         {
             RSAHashDecrypt(data, key);
         }
-       
+        private void AESTxtChange(byte[] data, byte[] key, byte[] vector)
+        {
+            AESHashDecrypt(data, key, vector);
+        }
+        public void AESHashEncrypt(string txt)
+        {
+            using (Aes aesAlg = Aes.Create())
+            {
+                byte[] output;
+                byte[] key = aesAlg.Key;
+                byte[] vector = aesAlg.IV; //вектор инициализации
+                ICryptoTransform encryptor = aesAlg.CreateEncryptor(key, vector);
+                using (MemoryStream msEncrypt = new MemoryStream())
+                {
+                    using (CryptoStream csEncrypt = new CryptoStream(msEncrypt, encryptor, CryptoStreamMode.Write))
+                    {
+                        using (StreamWriter swEncrypt = new StreamWriter(csEncrypt))
+                        {   
+                            swEncrypt.Write(txt);
+                        }
+                        output = msEncrypt.ToArray();
+                    }
+                }
+                AESHash.Data_From_User1ToUser2.EventHandler(output, key, vector);
+            }
+        }
+        public void AESHashDecrypt(byte[] data, byte[] key, byte[] vector)
+        {
+            using (Aes aesAlg = Aes.Create())
+            {
+                aesAlg.Key = key;
+                aesAlg.IV = vector;
+
+                ICryptoTransform decryptor = aesAlg.CreateDecryptor(aesAlg.Key, aesAlg.IV);
+                using (MemoryStream msDecrypt = new MemoryStream(data))
+                {
+                    using (CryptoStream csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read))
+                    {
+                        using (StreamReader srDecrypt = new StreamReader(csDecrypt))
+                        {
+                            richTextBox2.Text = srDecrypt.ReadToEnd() + richTextBox2.Text;
+                        }
+                    }
+                }
+            }
+        }
         public void RSAHashEncrypt(string txt)
         {
             UnicodeEncoding ByteConverter = new UnicodeEncoding();
@@ -38,19 +85,98 @@ namespace Chat
             RSAParameters public_key = RSA.ExportParameters(false);
             RSAParameters private_key = RSA.ExportParameters(true);
             RSA.ImportParameters(public_key);
-            byte[] textData = ByteConverter.GetBytes(txt);         
-            byte[] output = RSA.Encrypt(textData, false);
-            Data_From_User1ToUser2.EventHandler(output, private_key);
+            byte[] textData = ByteConverter.GetBytes(txt);
+            int len = textData.Length/100+1;
+            byte[][] text_array = new byte[len][];
+            int m = 0;
+            if (len == 1)//делю массив массив текста по 128 битов
+            {
+                text_array[0] = new byte[textData.Length];
+            }
+            else
+            {
+                int k = 0;
+                for (int i = 0; i < textData.Length; i++)
+                {
+                    m++;
+                    if (m == 100)
+                    {
+                        text_array[k] = new byte[m];
+                        k++;
+                        m = 0;
+                    }
+                }
+                if (m != 0)
+                {
+                    text_array[k] = new byte[m];
+                }
+            }
+            int index = 0;
+            m = 0;
+            for (int i = 0; i < textData.Length; i++)
+            {
+                if (m == 100)
+                {
+                    index++;
+                    m = 0;
+                }
+                Array.Copy(textData, i, text_array[index], m, 1);
+                m++;
+            }
+            byte[][] output = new byte[len][];
+            for (int i=0; i<len; i++)
+            {
+                output[i] = new byte[128];
+            }
+            output[0] = RSA.Encrypt(text_array[0], false);
+            for (int i = 1; i < len; i++)//складываю
+            {
+                for(int j=0; j<text_array[i].Length; j++)
+                {
+                    int o = output[i-1][j];
+                    int t = text_array[i][j];
+                    int p = o^t;
+                    text_array[i][j] = Convert.ToByte(p);
+                }
+                RSA.ImportParameters(public_key);
+                byte[] data = RSA.Encrypt(text_array[i], false);
+
+                output[i] = data;
+            }
+            RSAHash.Data_From_User1ToUser2.EventHandler(output, private_key);
 
 
         }
-        public void RSAHashDecrypt(byte[] data, RSAParameters key)
+        public void RSAHashDecrypt(byte[][] data, RSAParameters key)
         {
             UnicodeEncoding ByteConverter = new UnicodeEncoding();
             RSACryptoServiceProvider RSA = new RSACryptoServiceProvider();
+            int len = data.Length;
+            byte[][] text_array = new byte[len][];
+            int k = 0;
+            byte[][] output = new byte[len][];
             RSA.ImportParameters(key);
-            byte[] msg = RSA.Decrypt(data, false);
-            richTextBox2.Text = ByteConverter.GetString(msg) + richTextBox2.Text;
+            text_array[0] = RSA.Decrypt(data[0], false);
+            string txt = "";
+            for (int i = 1; i < len; i++)//складываю
+            {
+                text_array[i] = new byte[data[i].Length];
+                RSA.ImportParameters(key);
+                text_array[i] = RSA.Decrypt(data[i], false);
+                for (int j = 0; j < text_array[i].Length; j++)
+                {
+                    int o = data[i - 1][j];
+                    int t = text_array[i][j];
+                    int p = o ^ t;
+                    text_array[i][j] = Convert.ToByte(p);
+                }
+
+            }
+            for (int i = 0; i < len; i++)
+            {
+                txt = txt + ByteConverter.GetString(text_array[i]);
+            }
+            richTextBox2.Text = txt + richTextBox2.Text;
         }
         private void Form2_FormClosed(object sender, FormClosedEventArgs e)
         {
@@ -61,7 +187,17 @@ namespace Chat
         private void button1_Click(object sender, EventArgs e)
         {
             string msg= DateTime.Now.ToLongTimeString() + ": " + richTextBox1.Text + "\r\n";
-            RSAHashEncrypt(msg);
+            if (radioButton1.Checked == true)
+            {
+                RSAHashEncrypt(msg);
+            }
+            else if (radioButton2.Checked == true){
+                AESHashEncrypt(msg);
+            }
+            else
+            {
+                MessageBox.Show("Выберите алгоритм шифрования", "Chat", MessageBoxButtons.OK);
+            }
             richTextBox1.Text = null;
         }
 
