@@ -101,11 +101,11 @@ namespace Chat
                 else
                 {
                     Random rnd = new Random();
-                    string salt = rnd.Next().ToString();//соль для паролей
+                    string salt = rnd.Next().ToString(); //соль для паролей
                     string password = textBox2.Text;
                     password = GetHash(password);
                     password = GetHash(password + salt);
-                    int position_of_login = 0;
+                    int position_of_login = 0; 
                     position_of_login = PositionOfLoginInDatabase();
                     if (CheckPassword(position_of_login, password, salt) == false)
                     {

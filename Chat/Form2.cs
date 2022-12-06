@@ -8,8 +8,6 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Security.Cryptography;
-using System.Net;
-using System.Net.Sockets;
 using System.IO;
 
 namespace Chat
@@ -24,7 +22,7 @@ namespace Chat
             this.StartPosition = FormStartPosition.Manual;
             this.Location = new Point(100, 100);
             RSAHash.Data_From_User2ToUser1.EventHandler = new RSAHash.Data_From_User2ToUser1.MyEvent(RSATxtChange);
-            AESHash.Data_From_User2ToUser1.EventHandler = new AESHash.Data_From_User2ToUser1.MyEvent(AESTxtChange);
+            TripleDASHash.Data_From_User2ToUser1.EventHandler = new TripleDASHash.Data_From_User2ToUser1.MyEvent(TripleDASTxtChange);
         }
 
 
@@ -32,18 +30,18 @@ namespace Chat
         {
             RSAHashDecrypt(data, key);
         }
-        private void AESTxtChange(byte[] data, byte[] key, byte[] vector)
+        private void TripleDASTxtChange(byte[] data, byte[] key, byte[] vector)
         {
-            AESHashDecrypt(data, key, vector);
+            TripleDASHashDecrypt(data, key, vector);
         }
-        public void AESHashEncrypt(string txt)
+        public void TripleDASHashEncrypt(string txt)
         {
-            using (Aes aesAlg = Aes.Create())
+            using (TripleDES TripleDESAlg = TripleDES.Create())
             {
                 byte[] output;
-                byte[] key = aesAlg.Key;
-                byte[] vector = aesAlg.IV; //вектор инициализации
-                ICryptoTransform encryptor = aesAlg.CreateEncryptor(key, vector);
+                byte[] key = TripleDESAlg.Key;
+                byte[] vector = TripleDESAlg.IV; //вектор инициализации
+                ICryptoTransform encryptor = TripleDESAlg.CreateEncryptor(key, vector);
                 using (MemoryStream msEncrypt = new MemoryStream())
                 {
                     using (CryptoStream csEncrypt = new CryptoStream(msEncrypt, encryptor, CryptoStreamMode.Write))
@@ -55,17 +53,17 @@ namespace Chat
                         output = msEncrypt.ToArray();
                     }
                 }
-                AESHash.Data_From_User1ToUser2.EventHandler(output, key, vector);
+                TripleDASHash.Data_From_User1ToUser2.EventHandler(output, key, vector);
             }
         }
-        public void AESHashDecrypt(byte[] data, byte[] key, byte[] vector)
+        public void TripleDASHashDecrypt(byte[] data, byte[] key, byte[] vector)
         {
-            using (Aes aesAlg = Aes.Create())
+            using (TripleDES TripleDESAlg = TripleDES.Create())
             {
-                aesAlg.Key = key;
-                aesAlg.IV = vector;
+                TripleDESAlg.Key = key;
+                TripleDESAlg.IV = vector;
 
-                ICryptoTransform decryptor = aesAlg.CreateDecryptor(aesAlg.Key, aesAlg.IV);
+                ICryptoTransform decryptor = TripleDESAlg.CreateDecryptor(TripleDESAlg.Key, TripleDESAlg.IV);
                 using (MemoryStream msDecrypt = new MemoryStream(data))
                 {
                     using (CryptoStream csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read))
@@ -192,7 +190,7 @@ namespace Chat
                 RSAHashEncrypt(msg);
             }
             else if (radioButton2.Checked == true){
-                AESHashEncrypt(msg);
+                TripleDASHashEncrypt(msg);
             }
             else
             {

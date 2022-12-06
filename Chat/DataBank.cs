@@ -21,7 +21,7 @@ namespace Chat
             public static MyEvent EventHandler;
         }
     }
-    public class AESHash
+    public class TripleDASHash
     {
         public static class Data_From_User2ToUser1
         {
